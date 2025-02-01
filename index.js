@@ -33,7 +33,7 @@ function extractJsonFromResponse(aiContent) {
 // AI Function to Analyze and Generate Mission Details
 async function getMissionDetails(mission, totalPoints) {
     try {
-        const apiKey = process.env.RENDER_SECRET_KEY; // Read from environment variable
+        const apiKey = process.env.OPENROUTER_API_KEY; // Read from environment variable
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
