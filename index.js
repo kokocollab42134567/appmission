@@ -1,13 +1,11 @@
-require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.RENDER_SECRET_KEY;
 
 if (!OPENROUTER_API_KEY) {
-    console.error("Missing OpenRouter API Key. Please set OPENROUTER_API_KEY or RENDER_SECRET_KEY in your Render environment settings.");
+    console.error("Missing OpenRouter API Key. Please set OPENROUTER_API_KEY in your environment variables.");
     process.exit(1);
 }
 
@@ -25,7 +23,7 @@ function extractJsonFromResponse(aiContent) {
     if (!aiContent) return { error: "Empty response from AI." };
 
     aiContent = aiContent.trim();
-    
+
     // Remove Markdown code block if present
     const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/);
     const cleanJson = jsonMatch ? jsonMatch[1] : aiContent;
@@ -55,14 +53,14 @@ async function getMissionDetails(mission, totalPoints) {
             },
             {
                 headers: {
-                    Authorization: `Bearer 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`,
-                    'Content-Type': 'application/json'
-                  }                  
+                    Authorization: `Bearer ${RENDER_SECRET_KEY}`,
+                    "Content-Type": "application/json"
+                }                  
             }
         );
 
         const responseData = response.data;
-        if (responseData && responseData.choices) {
+        if (responseData?.choices?.length) {
             return extractJsonFromResponse(responseData.choices[0]?.message?.content);
         } else {
             return { error: "Unexpected AI response format." };
@@ -76,20 +74,50 @@ async function getMissionDetails(mission, totalPoints) {
 // API Route
 app.get("/mission", async (req, res) => {
     const { description, total_points } = req.query;
-    
+
     if (!description || !total_points) {
         return res.status(400).json({ error: "Missing required parameters: description or total_points." });
     }
-    
+
     const decodedMission = decodeMission(description);
     const missionDetails = await getMissionDetails(decodedMission, total_points);
-    
+
     res.json({
         original_mission: decodedMission,
-        total_points: total_points,
+        total_points,
         ai_generated_details: missionDetails
     });
 });
+
+// AI Query Function
+const queryAI = async (text) => {
+    try {
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "openai/gpt-4o-mini",
+                messages: [
+                    {
+                        role: "user",
+                        content: `Does this message "${text}" contain a request to mention or mention all users in a group? Please first correct any spelling errors or missing characters without writing them and then respond with only "yes" or "no". Your reply must be only as I say without changing or adding anything. Respond only in English.`
+                    }
+                ],
+                max_tokens: 5
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        return response.data?.choices?.[0]?.message?.content.trim() || "Error processing request.";
+    } catch (error) {
+        console.error("Error querying AI:", error);
+        return "Error processing request.";
+    }
+};
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
