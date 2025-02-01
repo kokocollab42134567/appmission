@@ -1,8 +1,11 @@
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
 // Helper function to decode mission description
 function decodeMission(description) {
     try {
@@ -33,7 +36,6 @@ function extractJsonFromResponse(aiContent) {
 // AI Function to Analyze and Generate Mission Details
 async function getMissionDetails(mission, totalPoints) {
     try {
-        const apiKey = process.env.OPENROUTER_API_KEY; // Read from environment variable
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
@@ -42,20 +44,20 @@ async function getMissionDetails(mission, totalPoints) {
                     { role: "system", content: "You analyze mission descriptions and provide structured details. Always return a valid JSON format." },
                     { 
                         role: "user", 
-                        content: `Mission: ${mission}\nTotal Points: ${totalPoints}\n\nExtract and provide the following details in JSON format:\n{\n  "title": "Mission Title",\n  "description": "Detailed mission explanation.",\n  "criteria": ["Criteria 1:?pts", "Criteria 2:?pts", "Criteria 3:?pts"...],\n  "difficulty": "S, A, B, C, D, E, F, Z",\n  "domain": "Programming, Marketing, Editing, etc."\n}`
+                        content: `Mission: ${mission}\nTotal Points: ${totalPoints}\n\nExtract and provide the following details in JSON format:\n{\n  "title": "Mission Title",\n  "description": "Detailed mission explanation.",\n  "criteria": ["Criteria 1:?pts", "Criteria 2:?pts", "Criteria 3:?pts"...]as thid list but givepoints based on total points and the number of creteria based on mission and if i some the points most = total points value,\n  "difficulty": "S, A, B, C, D, E, F, Z" S (Super)A (Advanced)B (Above Average)C (Moderate)D (Easy/Beginner)E (Very Easy)F (Free)Z (Zero/Trivial),\n  "domain": "Programming, Marketing, Editing, etc."\n}`
                     }
                 ]
             },
             {
                 headers: {
-                    Authorization: `Bearer ${apiKey}`,
+                    "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
                     "Content-Type": "application/json"
-                }                  
+                }
             }
         );
 
         const responseData = response.data;
-        if (responseData?.choices?.length) {
+        if (responseData && responseData.choices) {
             return extractJsonFromResponse(responseData.choices[0]?.message?.content);
         } else {
             return { error: "Unexpected AI response format." };
@@ -69,50 +71,20 @@ async function getMissionDetails(mission, totalPoints) {
 // API Route
 app.get("/mission", async (req, res) => {
     const { description, total_points } = req.query;
-
+    
     if (!description || !total_points) {
         return res.status(400).json({ error: "Missing required parameters: description or total_points." });
     }
-
+    
     const decodedMission = decodeMission(description);
     const missionDetails = await getMissionDetails(decodedMission, total_points);
-
+    
     res.json({
         original_mission: decodedMission,
-        total_points,
+        total_points: total_points,
         ai_generated_details: missionDetails
     });
 });
-
-// AI Query Function
-const queryAI = async (text) => {
-    try {
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-4o-mini",
-                messages: [
-                    {
-                        role: "user",
-                        content: `Does this message "${text}" contain a request to mention or mention all users in a group? Please first correct any spelling errors or missing characters without writing them and then respond with only "yes" or "no". Your reply must be only as I say without changing or adding anything. Respond only in English.`
-                    }
-                ],
-                max_tokens: 5
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        return response.data?.choices?.[0]?.message?.content.trim() || "Error processing request.";
-    } catch (error) {
-        console.error("Error querying AI:", error);
-        return "Error processing request.";
-    }
-};
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
