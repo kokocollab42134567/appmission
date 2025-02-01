@@ -3,12 +3,6 @@ const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-if (!OPENROUTER_API_KEY) {
-    console.error("Missing OpenRouter API Key. Please set OPENROUTER_API_KEY in your environment variables.");
-    process.exit(1);
-}
-
 // Helper function to decode mission description
 function decodeMission(description) {
     try {
