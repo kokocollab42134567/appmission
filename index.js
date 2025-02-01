@@ -1,10 +1,23 @@
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
+// Enable CORS for all requests
+app.use(cors());
+
+// OR, if you want to allow specific origins
+/*
+app.use(cors({
+    origin: ["https://your-frontend-domain.com"], // Replace with your actual frontend domain
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+*/
 
 // Helper function to decode mission description
 function decodeMission(description) {
@@ -20,8 +33,6 @@ function extractJsonFromResponse(aiContent) {
     if (!aiContent) return { error: "Empty response from AI." };
 
     aiContent = aiContent.trim();
-
-    // Remove Markdown code block if present
     const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/);
     const cleanJson = jsonMatch ? jsonMatch[1] : aiContent;
 
@@ -44,7 +55,7 @@ async function getMissionDetails(mission, totalPoints) {
                     { role: "system", content: "You analyze mission descriptions and provide structured details. Always return a valid JSON format." },
                     { 
                         role: "user", 
-                        content: `Mission: ${mission}\nTotal Points: ${totalPoints}\n\nExtract and provide the following details in JSON format:\n{\n  "title": "Mission Title",\n  "description": "Detailed mission explanation.",\n  "criteria": ["Criteria 1:?pts", "Criteria 2:?pts", "Criteria 3:?pts"...]as thid list but givepoints based on total points and the number of creteria based on mission and if i some the points most = total points value,\n  "difficulty": "S, A, B, C, D, E, F, Z" S (Super)A (Advanced)B (Above Average)C (Moderate)D (Easy/Beginner)E (Very Easy)F (Free)Z (Zero/Trivial),\n  "domain": "Programming, Marketing, Editing, etc."\n}`
+                        content: `Mission: ${mission}\nTotal Points: ${totalPoints}\n\nExtract and provide the following details in JSON format:\n{\n  "title": "Mission Title",\n  "description": "Detailed mission explanation.",\n  "criteria": ["Criteria 1:?pts", "Criteria 2:?pts", "Criteria 3:?pts"...],\n  "difficulty": "S, A, B, C, D, E, F, Z",\n  "domain": "Programming, Marketing, Editing, etc."\n}`
                     }
                 ]
             },
