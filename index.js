@@ -55,9 +55,9 @@ async function getMissionDetails(mission, totalPoints) {
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                    "Content-Type": "application/json"
-                }
+                    Authorization: `Bearer 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`,
+                    'Content-Type': 'application/json'
+                  }                  
             }
         );
 
