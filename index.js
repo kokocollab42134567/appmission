@@ -4,7 +4,7 @@ const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_KEY = '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';
 
 // Helper function to decode mission description
 function decodeMission(description) {
